@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import axios from "axios";
 import { AlertCircle, Send } from "lucide-react";
 import { API_BASE } from "../lib/constants";
@@ -16,6 +16,8 @@ const SUGGESTIONS = [
   "Explain the first chapter in simple words",
   "What is the most important idea in this book?",
 ];
+
+const MAX_INPUT_LINES = 5;
 
 const prefersReducedMotion = () =>
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -35,11 +37,20 @@ export default function ChatPanel({ filename }) {
     });
   }, [messages, loading]);
 
-  useEffect(() => {
+  // Grow the question box with its text, up to ~5 lines; show a scrollbar
+  // only when the text is taller than that. Heights include the border
+  // (border-box), which scrollHeight leaves out.
+  useLayoutEffect(() => {
     const el = inputRef.current;
     if (!el) return;
+    const cs = getComputedStyle(el);
+    const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    const padding = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const maxHeight = MAX_INPUT_LINES * parseFloat(cs.lineHeight) + padding + border;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    const needed = el.scrollHeight + border;
+    el.style.height = `${Math.min(needed, maxHeight)}px`;
+    el.style.overflowY = needed > maxHeight + 1 ? "auto" : "hidden";
   }, [question]);
 
   const ask = async (qOverride) => {
@@ -62,6 +73,7 @@ export default function ChatPanel({ filename }) {
         {
           role: "ai",
           text: res.data.answer,
+          question: q,
           sources: res.data.sources,
           meta: {
             total: res.data.total_candidates,
@@ -108,7 +120,7 @@ export default function ChatPanel({ filename }) {
             ) : (
               <div key={i} className="text-text">
                 <Markdown text={m.text} />
-                {m.sources?.length > 0 && <SourceChunks sources={m.sources} />}
+                {m.sources?.length > 0 && <SourceChunks sources={m.sources} question={m.question} />}
                 {m.meta && (
                   <p className="mt-3 font-mono text-xs text-muted">
                     {m.meta.total} checked · {m.meta.pruned} used
@@ -149,7 +161,7 @@ export default function ChatPanel({ filename }) {
             placeholder="Ask a doubt from your book…"
             disabled={loading}
             rows={1}
-            className="min-h-12 flex-1 resize-none rounded-lg border border-input-border bg-surface px-3 py-3 text-base leading-normal text-text transition-colors duration-150 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+            className="min-h-12 flex-1 resize-none overflow-y-hidden rounded-lg border border-input-border bg-surface px-3 py-3 text-base leading-normal text-text transition-colors duration-150 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
           />
           <Button
             type="submit"

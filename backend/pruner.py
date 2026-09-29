@@ -5,23 +5,23 @@ def prune_context(
     top_k: int = 5
 ) -> list[dict]:
     """
-    Lightweight 2-stage pruning (no cross-encoder on free tier):
-    1. Similarity threshold filter
-    2. Top-K selection by FAISS score
+    Lightweight 2-stage context pruning (no reranker model, to fit Render's free tier):
+    1. Drop candidates whose similarity score is below the threshold
+    2. Keep the top_k highest-scoring candidates that remain
+
+    If nothing passes the threshold (common for broad questions like
+    "summarize this"), fall back to the 3 best candidates so the LLM
+    always gets some context.
+
+    `query` isn't used yet; a future reranking step would use it.
     """
-    # Stage 1: Threshold filter
+    # Stage 1: threshold filter
     filtered = [c for c in candidates if c["score"] >= similarity_threshold]
 
     if not filtered:
-        filtered = candidates[:3]
+        filtered = sorted(candidates, key=lambda c: c["score"], reverse=True)[:3]
 
-    # Stage 2: Top-K by FAISS score (skip heavy cross-encoder)
-    reranked = sorted(filtered, key=lambda x: x["score"], reverse=True)
+    # Stage 2: keep the top_k by similarity score
+    ranked = sorted(filtered, key=lambda c: c["score"], reverse=True)
 
-    final = reranked[:top_k]
-
-    # Add rerank_score same as score for frontend compatibility
-    for item in final:
-        item["rerank_score"] = item["score"]
-
-    return final
+    return ranked[:top_k]

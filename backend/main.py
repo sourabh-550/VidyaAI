@@ -104,7 +104,7 @@ def ask_question(body: QuestionRequest):
     # Prepare source info for frontend
     sources = [
         {
-            "chunk": item["chunk"][:200] + "..." if len(item["chunk"]) > 200 else item["chunk"],
+            "chunk": item["chunk"],
             "similarity_score": round(item["score"], 4),
             "rerank_score": round(item.get("rerank_score", 0), 4)
         }
