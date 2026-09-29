@@ -88,7 +88,7 @@ function DemoCard() {
       </div>
 
       <figcaption className="mt-5 border-t border-border pt-3 font-mono text-[13px] text-text">
-        20 passages checked · 5 used · 1.8s
+        20 passages checked · 5 used · 1.4s
       </figcaption>
     </figure>
   );

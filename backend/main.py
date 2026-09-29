@@ -101,12 +101,11 @@ def ask_question(body: QuestionRequest):
     # Call Groq LLM
     answer = ask_llm(body.question, context_texts)
 
-    # Prepare source info for frontend
+    # Prepare source info for frontend (full passage text + similarity score)
     sources = [
         {
             "chunk": item["chunk"],
             "similarity_score": round(item["score"], 4),
-            "rerank_score": round(item.get("rerank_score", 0), 4)
         }
         for item in pruned
     ]
