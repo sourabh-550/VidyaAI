@@ -3,7 +3,7 @@ uvicorn==0.29.0
 python-multipart==0.0.9
 pymupdf==1.24.4
 faiss-cpu==1.13.2
-groq==0.9.0
+groq==1.7.0
 cohere==4.57
 python-dotenv==1.0.1
 numpy==1.26.4
