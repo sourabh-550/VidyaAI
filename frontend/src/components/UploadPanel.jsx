@@ -1,15 +1,19 @@
 import { useState, useRef } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { API_BASE } from "../lib/constants";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { API_BASE, UPLOAD_INPUT_ID } from "../lib/constants";
+import Button from "./ui/Button";
+import SlowServerNotice from "./ui/SlowServerNotice";
+import useSlowNotice from "../lib/useSlowNotice";
+import apiErrorMessage from "../lib/apiError";
 
-export default function UploadPanel({ onSuccess, compact = false }) {
+export default function UploadPanel({ onSuccess, className = "", children }) {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [drag, setDrag] = useState(false);
   const [progress, setProgress] = useState(0);
   const inputRef = useRef();
+  const slow = useSlowNotice(loading);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -41,7 +45,7 @@ export default function UploadPanel({ onSuccess, compact = false }) {
     } catch (err) {
       clearInterval(iv);
       setStatus(
-        "error:" + (err.response?.data?.detail || "Upload failed. Try again.")
+        "error:" + apiErrorMessage(err, "Upload failed. Try again.")
       );
     } finally {
       setLoading(false);
@@ -52,118 +56,93 @@ export default function UploadPanel({ onSuccess, compact = false }) {
   const msg = status.split(":").slice(1).join(":");
 
   return (
-    <div className={compact ? "" : "glass rounded-2xl p-6 sm:p-7"}>
-      {!compact && (
-        <div className="mb-5 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
-            <Upload className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-display text-base font-semibold text-text">
-              Upload Your Textbook
-            </h3>
-            <p className="text-sm text-muted">PDF — any size, any subject</p>
-          </div>
-        </div>
-      )}
-
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="Upload PDF file"
-        onKeyDown={(e) => e.key === "Enter" && !loading && inputRef.current?.click()}
-        className={`
-          group relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300
-          ${compact ? "p-8" : "p-10"}
-          ${drag ? "border-primary bg-primary/10" : "border-border-strong hover:border-primary/50 hover:bg-primary/5"}
-          ${loading ? "pointer-events-none opacity-90" : ""}
-        `}
-        onClick={() => !loading && inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          handleFile(e.dataTransfer.files[0]);
-        }}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf"
-          className="hidden"
-          aria-hidden="true"
-          onChange={(e) => handleFile(e.target.files[0])}
-        />
-
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-4"
-            >
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-medium text-muted">
-                Processing your document…
-              </p>
-              <div className="h-1.5 w-48 overflow-hidden rounded-full bg-white/10">
-                <motion.div
-                  className="h-full rounded-full gradient-primary"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-              <span className="font-mono text-xs text-muted">
-                {Math.round(progress)}%
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-elevated text-primary transition-transform group-hover:-translate-y-1">
-                <FileText className="h-6 w-6" />
-              </div>
-              <p className="mb-1 font-semibold text-text">
-                Drop your PDF here
-              </p>
-              <p className="text-sm text-muted">or click to browse files</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className={className}>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <Button
+          size="lg"
+          disabled={loading}
+          aria-describedby="upload-status"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDrag(true);
+          }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDrag(false);
+            handleFile(e.dataTransfer.files[0]);
+          }}
+          className={drag ? "ring-2 ring-primary ring-offset-2 ring-offset-bg" : ""}
+        >
+          {loading ? "Uploading…" : "Upload a textbook"}
+        </Button>
+        {children}
       </div>
 
-      <AnimatePresence>
-        {msg && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`mt-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
-              type === "ok"
-                ? "border border-success/25 bg-success/10 text-success"
-                : type === "error"
-                  ? "border border-red-500/25 bg-red-500/10 text-red-400"
-                  : ""
-            }`}
-          >
-            {type === "ok" && <CheckCircle2 className="h-4 w-4 shrink-0" />}
-            {type === "error" && <AlertCircle className="h-4 w-4 shrink-0" />}
-            <span>{msg}</span>
-          </motion.div>
+      <input
+        ref={inputRef}
+        id={UPLOAD_INPUT_ID}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        tabIndex={-1}
+        disabled={loading}
+        aria-hidden="true"
+        onChange={(e) => {
+          handleFile(e.target.files[0]);
+          // Clear the input so picking the same file again (e.g. after an
+          // error) still triggers a new upload.
+          e.target.value = "";
+        }}
+      />
+
+      <div id="upload-status" aria-live="polite">
+        {type === "loading" && (
+          <div className="mt-4 max-w-sm">
+            <p className="text-sm text-muted">
+              Reading your textbook. Large PDFs can take a minute.
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <div
+                role="progressbar"
+                aria-label="Upload progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progress)}
+                className="h-1.5 flex-1 overflow-hidden rounded-full bg-border"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-200"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="w-9 text-right font-mono text-xs text-muted">
+                {Math.round(progress)}%
+              </span>
+            </div>
+            {slow && (
+              <SlowServerNotice className="mt-3">
+                Waking up the server. The first upload can take up to a minute.
+              </SlowServerNotice>
+            )}
+          </div>
         )}
-      </AnimatePresence>
+
+        {type === "ok" && (
+          <p className="mt-4 flex items-center gap-2 text-sm font-medium text-primary">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{msg}</span>
+          </p>
+        )}
+
+        {type === "error" && (
+          <p role="alert" className="mt-4 flex items-start gap-2 text-sm text-danger">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{msg}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

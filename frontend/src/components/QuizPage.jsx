@@ -1,46 +1,40 @@
 import { useState } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  HelpCircle,
-  Play,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Trophy,
-  BookMarked,
-  Dumbbell,
-  Star,
-  RotateCcw,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, XCircle } from "lucide-react";
 import Button from "./ui/Button";
+import SlowServerNotice from "./ui/SlowServerNotice";
+import useSlowNotice from "../lib/useSlowNotice";
+import apiErrorMessage from "../lib/apiError";
 import { API_BASE } from "../lib/constants";
 
 const BADGES = [
-  { min: 100, label: "Excellent", emoji: "🏆", icon: Trophy, color: "text-success", bg: "bg-success/15 border-success/30" },
-  { min: 70, label: "Good Understanding", emoji: "📚", icon: BookMarked, color: "text-primary", bg: "bg-primary/15 border-primary/30" },
-  { min: 40, label: "Needs Revision", emoji: "💪", icon: Dumbbell, color: "text-accent", bg: "bg-accent/15 border-accent/30" },
-  { min: 0, label: "Keep Learning", emoji: "⭐", icon: Star, color: "text-muted", bg: "bg-white/5 border-border-strong" },
+  { min: 100, label: "Excellent" },
+  { min: 70, label: "Good understanding" },
+  { min: 40, label: "Needs revision" },
+  { min: 0, label: "Keep learning" },
 ];
 
 function getBadge(pct) {
   return BADGES.find((b) => pct >= b.min) || BADGES[BADGES.length - 1];
 }
 
+const QUESTION_COUNTS = [5, 10];
+
 export default function QuizPage() {
   const [topic, setTopic] = useState("");
   const [numQ, setNumQ] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [currentQ, setCurrentQ] = useState(0);
+  const slow = useSlowNotice(loading);
 
   const generate = async () => {
     setLoading(true);
+    setError("");
     setQuestions([]);
     setAnswers({});
     setSubmitted(false);
@@ -51,8 +45,8 @@ export default function QuizPage() {
         num_questions: numQ,
       });
       setQuestions(res.data.questions);
-    } catch {
-      alert("Failed to generate quiz. Make sure PDF is uploaded.");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Couldn't make the quiz. Check that your textbook is uploaded, then try again."));
     } finally {
       setLoading(false);
     }
@@ -88,395 +82,360 @@ export default function QuizPage() {
     questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
   const badge = getBadge(pct);
   const answeredCount = Object.keys(answers).length;
+  const isLast = currentQ === questions.length - 1;
 
   return (
-    <div className="mx-auto max-w-3xl pb-16">
-      {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/15 text-secondary">
-          <HelpCircle className="h-6 w-6" />
-        </div>
-        <div>
-          <h2 className="font-display text-2xl font-bold text-text">
-            Quiz Generator
-          </h2>
-          <p className="text-sm text-muted">
-            Auto-generated from your uploaded document
-          </p>
-        </div>
-      </div>
-
-      {/* Score screen */}
-      <AnimatePresence>
-        {submitted && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`mb-8 rounded-2xl border p-6 sm:p-8 ${badge.bg}`}
-          >
-            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-                className="relative"
-              >
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-current bg-surface/50">
-                  <span className="font-display text-2xl font-bold gradient-text">
-                    {pct}%
-                  </span>
-                </div>
-                <span className="absolute -right-1 -top-1 text-2xl">
-                  {badge.emoji}
-                </span>
-              </motion.div>
-
-              <div className="flex-1 text-center sm:text-left">
-                <h3 className={`font-display text-xl font-bold ${badge.color}`}>
-                  {badge.label}
-                </h3>
-                <p className="mt-1 text-sm text-muted">
-                  {score} correct out of {questions.length} questions
-                </p>
-
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full rounded-full gradient-primary"
-                  />
-                </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <StatBox label="Correct" value={score} color="text-success" />
-                  <StatBox
-                    label="Wrong"
-                    value={questions.length - score}
-                    color="text-red-400"
-                  />
-                  <StatBox label="Score" value={`${pct}%`} color="text-primary" />
-                </div>
-              </div>
-
-              <Button variant="secondary" size="sm" onClick={reset}>
-                <RotateCcw className="h-4 w-4" />
-                New Quiz
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    <div className="max-w-[720px] pt-8 pb-16">
       {/* Setup */}
       {questions.length === 0 && !loading && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-6 sm:p-8"
-        >
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted">
-                Topic (optional)
-              </label>
-              <input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && generate()}
-                placeholder="e.g. Photosynthesis, Gravity, Chapter 3…"
-                className="w-full rounded-xl border border-border-strong bg-surface-elevated px-4 py-3 text-sm text-text placeholder:text-muted outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted">
-                Questions
-              </label>
-              <div className="flex gap-2">
-                {[5, 10, 15].map((n) => (
+        <div>
+          <IntroHeading />
+          <form
+            className="mt-6 rounded-[10px] border border-border bg-surface p-5 sm:p-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              generate();
+            }}
+          >
+            <label htmlFor="quiz-topic" className="block text-sm font-medium text-text">
+              Topic <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <input
+              id="quiz-topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g. Photosynthesis, Chapter 3"
+              className="mt-2 min-h-12 w-full rounded-lg border border-input-border bg-bg px-3 text-base text-text transition-colors duration-150 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+
+            <fieldset className="mt-5">
+              <legend className="text-sm font-medium text-text">Number of questions</legend>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {QUESTION_COUNTS.map((n) => (
                   <button
                     key={n}
+                    type="button"
+                    aria-pressed={numQ === n}
                     onClick={() => setNumQ(n)}
-                    className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-all ${
+                    className={`min-h-12 rounded-lg border text-base font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       numQ === n
-                        ? "border-primary bg-primary/15 text-primary"
-                        : "border-border-strong bg-surface-elevated text-muted hover:text-text"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-bg text-muted hover:border-primary/50 hover:text-text"
                     }`}
                   >
                     {n}
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-          <Button className="mt-6 w-full" size="lg" onClick={generate}>
-            <Play className="h-4 w-4" />
-            Generate Quiz
-          </Button>
-        </motion.div>
-      )}
+            </fieldset>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex flex-col items-center gap-4 py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted">
-            Generating {numQ} questions from your document…
-          </p>
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="h-1.5 w-8 rounded-full bg-primary/30"
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-              />
-            ))}
-          </div>
+            <Button type="submit" size="lg" className="mt-6 w-full">
+              Make quiz
+            </Button>
+
+            {error && (
+              <p role="alert" className="mt-4 flex items-start gap-2 text-sm text-danger">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{error}</span>
+              </p>
+            )}
+          </form>
         </div>
       )}
 
-      {/* Questions */}
-      {questions.length > 0 && (
-        <div className="space-y-6">
-          {/* Progress bar */}
-          {!submitted && (
-            <div className="glass rounded-xl p-4">
-              <div className="flex items-center justify-between text-xs text-muted">
-                <span>Progress</span>
-                <span>{answeredCount}/{questions.length} answered</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                <motion.div
-                  className="h-full rounded-full gradient-primary"
-                  animate={{
-                    width: `${(answeredCount / questions.length) * 100}%`,
-                  }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-
-              {/* Question nav dots */}
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {questions.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentQ(i)}
-                    aria-label={`Go to question ${i + 1}`}
-                    className={`h-8 w-8 rounded-lg text-xs font-semibold transition-all ${
-                      currentQ === i
-                        ? "gradient-primary text-white"
-                        : answers[i]
-                          ? "bg-success/20 text-success"
-                          : "bg-white/5 text-muted hover:bg-white/10"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
+      {/* Loading: static skeleton, no spinner */}
+      {loading && (
+        <div aria-live="polite">
+          <IntroHeading />
+          <p className="mt-6 text-muted">
+            Writing {numQ} questions from your textbook…
+          </p>
+          <div
+            className="mt-4 rounded-[10px] border border-border bg-surface p-5 sm:p-6"
+            aria-hidden="true"
+          >
+            <div className="h-4 w-3/4 rounded-sm bg-border" />
+            <div className="mt-5 space-y-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-12 rounded-lg border border-border bg-bg" />
+              ))}
             </div>
+          </div>
+          {slow && (
+            <SlowServerNotice className="mt-4">
+              Waking up the server. This can take up to a minute.
+            </SlowServerNotice>
           )}
+        </div>
+      )}
 
-          {/* Meta */}
-          <div className="flex items-center gap-3 text-sm text-muted">
-            <span>{questions.length} questions</span>
-            {!submitted && <span>{answeredCount} answered</span>}
+      {/* Answering: one question at a time */}
+      {questions.length > 0 && !submitted && (
+        <div>
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="text-sm text-muted">
+              Question {currentQ + 1} of {questions.length} · {answeredCount} answered
+            </p>
             <button
+              type="button"
               onClick={reset}
-              className="ml-auto text-xs font-medium text-muted transition-colors hover:text-primary"
+              className="rounded-sm text-sm font-medium text-primary underline-offset-4 transition-colors duration-150 hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              ← New Quiz
+              New quiz
             </button>
           </div>
 
-          {/* Single question view (when not submitted) or all (when submitted) */}
-          {!submitted ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentQ}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-border"
+            role="progressbar"
+            aria-label="Questions answered"
+            aria-valuemin={0}
+            aria-valuemax={questions.length}
+            aria-valuenow={answeredCount}
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+            />
+          </div>
+
+          <nav aria-label="Questions" className="mt-4 flex flex-wrap gap-1.5">
+            {questions.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentQ(i)}
+                aria-current={currentQ === i ? "step" : undefined}
+                aria-label={`Question ${i + 1}${answers[i] ? ", answered" : ""}`}
+                className={`h-10 min-w-10 rounded-lg border px-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  currentQ === i
+                    ? "border-primary bg-primary text-on-primary"
+                    : answers[i]
+                      ? "border-primary/40 bg-primary/10 text-text"
+                      : "border-border bg-surface text-muted hover:text-text"
+                }`}
               >
-                <QuestionCard
-                  q={questions[currentQ]}
-                  qi={currentQ}
-                  answers={answers}
-                  submitted={submitted}
-                  onSelect={select}
-                />
-              </motion.div>
-            </AnimatePresence>
-          ) : (
-            questions.map((q, qi) => (
+                {i + 1}
+              </button>
+            ))}
+          </nav>
+
+          <QuestionCard
+            className="mt-6"
+            q={questions[currentQ]}
+            qi={currentQ}
+            answers={answers}
+            submitted={false}
+            onSelect={select}
+          />
+
+          <div className="mt-6 flex items-center justify-between gap-4">
+            <Button
+              variant="secondary"
+              disabled={currentQ === 0}
+              onClick={() => setCurrentQ((c) => c - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Previous
+            </Button>
+            {isLast ? (
+              <Button disabled={!allAnswered} onClick={submit}>
+                Submit quiz
+              </Button>
+            ) : (
+              <Button variant="secondary" onClick={() => setCurrentQ((c) => c + 1)}>
+                Next
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+
+          {isLast && !allAnswered && (
+            <p className="mt-3 text-right text-sm text-muted">
+              Answer every question to submit.
+            </p>
+          )}
+          {!isLast && allAnswered && (
+            <Button className="mt-4 w-full" size="lg" onClick={submit}>
+              Submit quiz
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Results, then a review of every question */}
+      {submitted && (
+        <div>
+          <section
+            aria-labelledby="quiz-results"
+            className="rounded-[10px] border border-border bg-surface p-5 sm:p-6"
+          >
+            <p className="text-sm text-muted">Your score</p>
+            <h2 id="quiz-results" className="mt-1 font-display text-3xl font-bold text-text">
+              {score} out of {questions.length}
+            </h2>
+            <p className="mt-1 text-muted">
+              {pct}% · {badge.label}
+            </p>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-border" aria-hidden="true">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+            <dl className="mt-4 flex gap-8 text-sm">
+              <div>
+                <dt className="text-muted">Correct</dt>
+                <dd className="mt-0.5 flex items-center gap-1.5 text-base font-semibold text-primary">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                  {score}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted">Wrong</dt>
+                <dd className="mt-0.5 flex items-center gap-1.5 text-base font-semibold text-danger">
+                  <XCircle className="h-4 w-4" aria-hidden="true" />
+                  {questions.length - score}
+                </dd>
+              </div>
+            </dl>
+            <Button className="mt-6" onClick={reset}>
+              Make a new quiz
+            </Button>
+          </section>
+
+          <h3 className="mt-10 font-display text-xl font-semibold text-text">
+            Review your answers
+          </h3>
+          <div className="mt-4 space-y-4">
+            {questions.map((q, qi) => (
               <QuestionCard
                 key={qi}
                 q={q}
                 qi={qi}
                 answers={answers}
-                submitted={submitted}
+                submitted
                 onSelect={select}
               />
-            ))
-          )}
-
-          {/* Navigation */}
-          {!submitted && questions.length > 0 && (
-            <div className="flex items-center justify-between gap-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentQ === 0}
-                onClick={() => setCurrentQ((c) => c - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              {currentQ < questions.length - 1 ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setCurrentQ((c) => c + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  disabled={!allAnswered}
-                  onClick={submit}
-                >
-                  Submit Quiz
-                </Button>
-              )}
-            </div>
-          )}
-
-          {!submitted && currentQ < questions.length - 1 && allAnswered && (
-            <Button className="w-full" size="lg" onClick={submit}>
-              Submit Quiz · {answeredCount}/{questions.length}
-            </Button>
-          )}
-
-          {submitted && (
-            <Button className="w-full" size="lg" onClick={reset}>
-              <RotateCcw className="h-4 w-4" />
-              Generate New Quiz
-            </Button>
-          )}
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function StatBox({ label, value, color }) {
+function IntroHeading() {
   return (
-    <div className="rounded-xl glass-subtle px-3 py-2 text-center">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
-      <p className={`font-display text-lg font-bold ${color}`}>{value}</p>
-    </div>
+    <>
+      <h2 className="font-display text-2xl font-semibold text-text">Practice quiz</h2>
+      <p className="mt-2 text-muted">
+        MCQ and True/False questions made from your textbook. Add a topic, or
+        leave it blank to cover the whole book.
+      </p>
+    </>
   );
 }
 
-function QuestionCard({ q, qi, answers, submitted, onSelect }) {
+// The API's options often carry their own letter ("A) Paris"), which duplicates
+// the letter badge. Strip it for display only, and only when every option has
+// its matching letter. Answers are still compared using the original strings.
+function optionLabels(options) {
+  const prefix = (oi) =>
+    new RegExp(`^\\s*${String.fromCharCode(65 + oi)}\\s*[).:]\\s*`, "i");
+  const allPrefixed = options.every((opt, oi) => prefix(oi).test(opt));
+  return options.map((opt, oi) =>
+    allPrefixed ? opt.replace(prefix(oi), "") || opt : opt
+  );
+}
+
+function QuestionCard({ q, qi, answers, submitted, onSelect, className = "" }) {
   const isCorrect = answers[qi] === q.correct;
+  const labels = optionLabels(q.options);
 
   return (
-    <div
-      className={`rounded-2xl border p-5 sm:p-6 transition-colors ${
-        submitted
-          ? isCorrect
-            ? "border-success/30 bg-success/5"
-            : "border-red-500/30 bg-red-500/5"
-          : "border-border-strong glass"
-      }`}
-    >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-md bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">
-          Q{qi + 1}
-        </span>
-        <span
-          className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ${
-            q.type === "mcq"
-              ? "bg-secondary/15 text-secondary"
-              : "bg-accent/15 text-accent"
-          }`}
-        >
-          {q.type === "mcq" ? "MCQ" : "True / False"}
+    <div className={`rounded-[10px] border border-border bg-surface p-5 sm:p-6 ${className}`}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+        <span>
+          Question {qi + 1} · {q.type === "mcq" ? "MCQ" : "True or false"}
         </span>
         {submitted && (
           <span
-            className={`ml-auto flex items-center gap-1 text-xs font-semibold ${
-              isCorrect ? "text-success" : "text-red-400"
+            className={`ml-auto flex items-center gap-1 font-semibold ${
+              isCorrect ? "text-primary" : "text-danger"
             }`}
           >
             {isCorrect ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <XCircle className="h-3.5 w-3.5" />
+              <XCircle className="h-4 w-4" aria-hidden="true" />
             )}
             {isCorrect ? "Correct" : "Wrong"}
           </span>
         )}
       </div>
 
-      <p className="mb-5 text-base font-medium leading-relaxed text-text">
+      <p className="mt-2 font-display text-lg font-semibold leading-snug text-text">
         {q.question}
       </p>
 
-      <div className="space-y-2">
+      <div className="mt-5 space-y-2">
         {q.options.map((opt, oi) => {
           const selected = answers[qi] === opt;
           const isAnswer = opt === q.correct;
-          let cls =
-            "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all ";
 
-          if (submitted && isAnswer) {
-            cls += "border-success/40 bg-success/10 text-success";
-          } else if (submitted && selected && !isAnswer) {
-            cls += "border-red-500/40 bg-red-500/10 text-red-400";
+          // After submitting, colour is always paired with an icon and a label.
+          let rowClass = "border-border bg-surface text-text hover:border-primary/50 hover:bg-primary/5";
+          let status = null;
+          if (submitted) {
+            if (isAnswer) {
+              rowClass = "border-primary bg-primary/10 text-text";
+              status = { icon: CheckCircle2, text: selected ? "Your answer" : "Correct answer", color: "text-primary" };
+            } else if (selected) {
+              rowClass = "border-danger bg-danger/10 text-text";
+              status = { icon: XCircle, text: "Your answer", color: "text-danger" };
+            } else {
+              rowClass = "border-border bg-surface text-muted";
+            }
           } else if (selected) {
-            cls += "border-primary bg-primary/15 text-primary-light";
-          } else {
-            cls +=
-              "border-border bg-surface-elevated/50 text-muted hover:border-primary/30 hover:text-text";
+            rowClass = "border-primary bg-primary/10 text-text";
           }
 
           return (
-            <motion.button
+            <button
               key={oi}
-              whileTap={!submitted ? { scale: 0.98 } : {}}
-              className={cls}
+              type="button"
+              aria-pressed={!submitted ? selected : undefined}
+              className={`flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-default ${rowClass}`}
               onClick={() => onSelect(qi, opt)}
               disabled={submitted}
             >
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                  selected ? "bg-primary text-white" : "bg-white/5 text-muted"
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-sm font-semibold ${
+                  submitted && selected && !isAnswer
+                    ? "border-danger bg-danger text-on-primary"
+                    : selected
+                      ? "border-primary bg-primary text-on-primary"
+                      : "border-border text-muted"
                 }`}
+                aria-hidden="true"
               >
                 {String.fromCharCode(65 + oi)}
               </span>
-              {opt}
-            </motion.button>
+              <span className="flex-1">{labels[oi]}</span>
+              {status && (
+                <span className={`flex shrink-0 items-center gap-1 text-sm font-medium ${status.color}`}>
+                  <status.icon className="h-4 w-4" aria-hidden="true" />
+                  {status.text}
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
 
-      {submitted && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="mt-4 flex gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted"
-        >
-          <span>💡</span>
-          <span>{q.explanation}</span>
-        </motion.div>
+      {submitted && q.explanation && (
+        <p className="mt-4 rounded-lg bg-bg px-4 py-3 text-sm text-text">
+          <span className="font-semibold">Explanation: </span>
+          {q.explanation}
+        </p>
       )}
     </div>
   );

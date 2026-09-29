@@ -1,0 +1,97 @@
+/*
+ * VidyaAI design tokens. This is the ONLY place colors are defined.
+ * Components use the Tailwind utilities mapped below (bg-bg, text-muted,
+ * bg-primary, ...) — never raw hex values or Tailwind's default palette.
+ *
+ * Theme: light by default, dark via prefers-color-scheme, and a manual
+ * override via <html data-theme="light|dark"> (see ThemeToggle.jsx).
+ */
+
+:root {
+  color-scheme: light;
+
+  --bg: #FAF8F3;
+  --surface: #FFFFFF;
+  --text: #1C2421;
+  --text-muted: #5B6660;
+  --border: #E4E0D6;
+  --input-border: #879089; /* text inputs: 3:1 against page and card (WCAG 1.4.11) */
+  --primary: #2F6B4F;
+  --primary-hover: #22523C;
+  --on-primary: #FFFFFF;
+  --highlight: #F6D776;
+  --highlight-line: #E9B949; /* thin amber rule beside source passages */
+  --accent: #8A5A12;
+  --danger: #B42318;
+
+  /* The one allowed shadow: the hero demo card. */
+  --card-shadow: 0 1px 2px rgba(28, 36, 33, 0.04), 0 12px 32px rgba(28, 36, 33, 0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #121614;
+    --surface: #1A201D;
+    --text: #E9ECE8;
+    --text-muted: #9AA59F;
+    --border: #2A322E;
+    --input-border: #646F69;
+    --primary: #6FB592;
+    --primary-hover: #8BC7A7;
+    --on-primary: #0F1A14;
+    --highlight: rgba(246, 215, 118, 0.22);
+    --highlight-line: rgba(246, 215, 118, 0.6);
+    --accent: #E0B45C;
+    --danger: #F97066;
+
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.25);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #121614;
+  --surface: #1A201D;
+  --text: #E9ECE8;
+  --text-muted: #9AA59F;
+  --border: #2A322E;
+  --input-border: #646F69;
+  --primary: #6FB592;
+  --primary-hover: #8BC7A7;
+  --on-primary: #0F1A14;
+  --highlight: rgba(246, 215, 118, 0.22);
+  --highlight-line: rgba(246, 215, 118, 0.6);
+  --accent: #E0B45C;
+  --danger: #F97066;
+
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+@theme inline {
+  /* Drop Tailwind's default palette so hardcoded colors can't creep in. */
+  --color-*: initial;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-highlight: var(--highlight);
+  --color-highlight-line: var(--highlight-line);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-input-border: var(--input-border);
+
+  --font-sans: "Noto Sans", system-ui, sans-serif;
+  --font-serif: "Noto Serif", Georgia, serif;
+  --font-display: "Noto Serif", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --shadow-card: var(--card-shadow);
+}

@@ -78,8 +78,12 @@ def ask_question(body: QuestionRequest):
     # Retrieve top-20 candidates from FAISS
     try:
         candidates = search(body.question, top_k=20)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except FileNotFoundError:
+        # The index is missing: nothing was uploaded, or the server restarted and lost it
+        raise HTTPException(
+            status_code=404,
+            detail="Your textbook isn't loaded on the server anymore. Please upload it again.",
+        )
 
     total_candidates = len(candidates)
 

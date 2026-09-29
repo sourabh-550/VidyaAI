@@ -1,78 +1,44 @@
 @import "tailwindcss";
-
-@theme {
-  --color-primary: #6366f1;
-  --color-primary-light: #818cf8;
-  --color-secondary: #8b5cf6;
-  --color-accent: #06b6d4;
-  --color-success: #10b981;
-  --color-bg: #0b1020;
-  --color-surface: #111827;
-  --color-surface-elevated: #1a2234;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.14);
-  --color-text: #f9fafb;
-  --color-muted: #9ca3af;
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-display: "Inter", system-ui, sans-serif;
-}
+@import "./styles/tokens.css";
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem; /* keep anchored sections clear of the sticky nav */
   }
 
   body {
     @apply bg-bg text-text antialiased;
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
   }
 
   ::selection {
-    background: rgba(99, 102, 241, 0.35);
-    color: #fff;
-  }
-}
-
-@layer utilities {
-  .glass {
-    background: rgba(17, 24, 39, 0.65);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--color-border-strong);
+    background: var(--highlight);
+    color: var(--text);
   }
 
-  .glass-subtle {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--color-border);
-  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
 
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
-  }
-
-  .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-secondary;
-  }
-
-  .glow-primary {
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.25);
-  }
-
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
   }
 }

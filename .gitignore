@@ -8,11 +8,12 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.venv/
 
 # FAISS index (auto-generated on upload)
 backend/faiss_store/
 
-# Environment variables (NEVER push this)
+# Environment variables
 .env
 *.env
 
@@ -23,6 +24,9 @@ dist/
 
 # VS Code
 .vscode/
+CLAUDE.md 
+Design.md 
+
 
 # OS files
 .DS_Store

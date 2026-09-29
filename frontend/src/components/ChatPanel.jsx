@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Send,
-  Bot,
-  User,
-  Sparkles,
-  BookOpen,
-} from "lucide-react";
+import { AlertCircle, Send } from "lucide-react";
 import { API_BASE } from "../lib/constants";
+import { USER_BUBBLE } from "../lib/styles";
+import Markdown from "./ui/Markdown";
+import Button from "./ui/Button";
+import SourceChunks from "./SourceChunks";
+import SlowServerNotice from "./ui/SlowServerNotice";
+import useSlowNotice from "../lib/useSlowNotice";
+import apiErrorMessage from "../lib/apiError";
 
 const SUGGESTIONS = [
   "Summarize the key topics in this document",
@@ -17,23 +17,29 @@ const SUGGESTIONS = [
   "What is the most important idea in this book?",
 ];
 
-export default function ChatPanel({ onAnswer }) {
+const prefersReducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+export default function ChatPanel({ filename }) {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef();
   const inputRef = useRef();
-  const msgsRef = useRef();
+  const slow = useSlowNotice(loading);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0 && !loading) return;
+    bottomRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
   }, [messages, loading]);
 
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [question]);
 
   const ask = async (qOverride) => {
@@ -42,33 +48,34 @@ export default function ChatPanel({ onAnswer }) {
     setMessages((p) => [...p, { role: "user", text: q }]);
     setQuestion("");
     setLoading(true);
+    // Browser-side timing: from sending the question to receiving the answer.
+    const startedAt = performance.now();
     try {
       const res = await axios.post(`${API_BASE}/ask`, {
         question: q,
         top_k: 5,
         similarity_threshold: 0.25,
       });
+      const seconds = (performance.now() - startedAt) / 1000;
       setMessages((p) => [
         ...p,
         {
           role: "ai",
           text: res.data.answer,
+          sources: res.data.sources,
           meta: {
             total: res.data.total_candidates,
             pruned: res.data.pruned_count,
+            seconds,
           },
         },
       ]);
-      onAnswer(res.data.sources, {
-        total: res.data.total_candidates,
-        pruned: res.data.pruned_count,
-      });
-    } catch {
+    } catch (err) {
       setMessages((p) => [
         ...p,
         {
           role: "ai",
-          text: "Something went wrong. Please try again.",
+          text: apiErrorMessage(err, "Something went wrong. Please try again."),
           error: true,
         },
       ]);
@@ -79,140 +86,57 @@ export default function ChatPanel({ onAnswer }) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] min-h-[520px] flex-col glass rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <Sparkles className="h-4 w-4" />
-        </div>
-        <div>
-          <h3 className="font-display text-sm font-semibold text-text">
-            AI Tutor Chat
-          </h3>
-          <p className="text-xs text-muted">Context-pruned RAG · Groq LLaMA</p>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div
-        ref={msgsRef}
-        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 sm:px-6"
-      >
+    // A single notebook-style column. The page scrolls; the question box
+    // sticks to the bottom of the screen.
+    <div className="flex min-h-[calc(100dvh-7.75rem)] max-w-[720px] flex-col">
+      <div className="flex-1 py-8">
         {messages.length === 0 && !loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-12 text-center"
-          >
-            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 text-primary">
-              <BookOpen className="h-7 w-7" />
-            </div>
-            <h4 className="font-display text-lg font-semibold text-text">
-              Ask anything about your document
-            </h4>
-            <p className="mt-2 max-w-sm text-sm text-muted">
-              Get grounded answers from your textbook. Try a suggestion below.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {SUGGESTIONS.map((s, i) => (
-                <motion.button
-                  key={s}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.05 }}
-                  onClick={() => ask(s)}
-                  className="rounded-full border border-border-strong bg-surface-elevated px-4 py-2 text-xs font-medium text-muted transition-all hover:border-primary/40 hover:text-text hover:bg-primary/10"
-                >
-                  {s}
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
+          <EmptyState filename={filename} onPick={(s) => ask(s)} />
         )}
 
-        <div className="flex flex-col gap-4">
-          <AnimatePresence initial={false}>
-            {messages.map((m, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
-              >
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                    m.role === "user"
-                      ? "gradient-primary text-white"
-                      : "glass-subtle text-primary"
-                  }`}
-                >
-                  {m.role === "user" ? (
-                    <User className="h-4 w-4" />
-                  ) : (
-                    <Bot className="h-4 w-4" />
-                  )}
-                </div>
-                <div
-                  className={`max-w-[85%] sm:max-w-[78%] ${m.role === "user" ? "text-right" : ""}`}
-                >
-                  <div
-                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                      m.role === "user"
-                        ? "gradient-primary text-white rounded-br-md"
-                        : m.error
-                          ? "border border-red-500/30 bg-red-500/10 text-red-300 rounded-bl-md"
-                          : "glass-subtle text-text rounded-bl-md"
-                    }`}
-                  >
-                    {m.text}
-                  </div>
-                  {m.meta && (
-                    <p className="mt-1.5 text-[11px] text-muted">
-                      {m.meta.pruned} passages used · {m.meta.total} searched
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex gap-3"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg glass-subtle text-primary">
-                <Bot className="h-4 w-4" />
+        <div className="space-y-8">
+          {messages.map((m, i) =>
+            m.role === "user" ? (
+              <p key={i} className={USER_BUBBLE}>
+                {m.text}
+              </p>
+            ) : m.error ? (
+              <p key={i} role="alert" className="flex items-start gap-2 text-danger">
+                <AlertCircle className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{m.text}</span>
+              </p>
+            ) : (
+              <div key={i} className="text-text">
+                <Markdown text={m.text} />
+                {m.sources?.length > 0 && <SourceChunks sources={m.sources} />}
+                {m.meta && (
+                  <p className="mt-3 font-mono text-xs text-muted">
+                    {m.meta.total} checked · {m.meta.pruned} used
+                    {typeof m.meta.seconds === "number" && ` · ${m.meta.seconds.toFixed(1)}s`}
+                  </p>
+                )}
               </div>
-              <div className="glass-subtle rounded-2xl rounded-bl-md px-5 py-4">
-                <div className="flex items-center gap-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="h-2 w-2 rounded-full bg-primary/60"
-                      animate={{ y: [0, -6, 0], opacity: [0.4, 1, 0.4] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        delay: i * 0.15,
-                      }}
-                    />
-                  ))}
-                  <span className="ml-2 text-xs text-muted">Thinking…</span>
-                </div>
-              </div>
-            </motion.div>
+            )
           )}
+
+          {loading && <AnswerSkeleton slow={slow} />}
         </div>
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t border-border p-4">
-        <div className="flex items-end gap-2 rounded-xl border border-border-strong bg-surface-elevated p-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
+      <div className="sticky bottom-0 -mx-4 border-t border-border bg-bg px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:mx-0 sm:px-0">
+        <form
+          className="flex items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            ask();
+          }}
+        >
+          <label htmlFor="question" className="sr-only">
+            Your question
+          </label>
           <textarea
+            id="question"
             ref={inputRef}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -222,27 +146,68 @@ export default function ChatPanel({ onAnswer }) {
                 ask();
               }
             }}
-            placeholder="Ask a question about your document…"
+            placeholder="Ask a doubt from your book…"
             disabled={loading}
             rows={1}
-            aria-label="Question input"
-            className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-text placeholder:text-muted outline-none disabled:opacity-50"
+            className="min-h-12 flex-1 resize-none rounded-lg border border-input-border bg-surface px-3 py-3 text-base leading-normal text-text transition-colors duration-150 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
           />
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => ask()}
+          <Button
+            type="submit"
+            size="lg"
             disabled={loading || !question.trim()}
-            aria-label="Send message"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg gradient-primary text-white disabled:opacity-30"
+            aria-label="Send question"
+            className="w-12 shrink-0 px-0"
           >
-            <Send className="h-4 w-4" />
-          </motion.button>
-        </div>
-        <p className="mt-2 text-center text-[10px] text-muted">
-          Press Enter to send · Shift+Enter for new line
+            <Send className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </form>
+        <p className="mt-2 hidden text-xs text-muted sm:block">
+          Enter to send · Shift+Enter for a new line
         </p>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ filename, onPick }) {
+  return (
+    <div>
+      <h2 className="font-display text-2xl font-semibold text-text">
+        Ask your first question
+      </h2>
+      <p className="mt-2 text-muted">
+        Answers come only from{" "}
+        {filename ? <span className="font-medium text-text">{filename}</span> : "your textbook"}.
+        Try one of these:
+      </p>
+      <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+        {SUGGESTIONS.map((s) => (
+          <li key={s}>
+            <button
+              type="button"
+              onClick={() => onPick(s)}
+              className="min-h-12 w-full rounded-lg border border-border bg-surface px-4 py-3 text-left text-sm text-text transition-colors duration-150 hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {s}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Static placeholder while the answer loads. No pulsing or looping animation.
+function AnswerSkeleton({ slow }) {
+  return (
+    <div aria-live="polite">
+      <p className="text-sm text-muted">Looking through your textbook…</p>
+      <div className="mt-3 space-y-2.5" aria-hidden="true">
+        <div className="h-3 w-11/12 rounded-sm bg-border" />
+        <div className="h-3 w-full rounded-sm bg-border" />
+        <div className="h-3 w-2/3 rounded-sm bg-border" />
+      </div>
+      {slow && <SlowServerNotice className="mt-4" />}
     </div>
   );
 }

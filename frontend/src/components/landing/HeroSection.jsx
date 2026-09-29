@@ -1,77 +1,95 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
-import Button from "../ui/Button";
 import UploadPanel from "../UploadPanel";
+import { USER_BUBBLE } from "../../lib/styles";
 
-export default function HeroSection({ onSuccess, onSeeHowItWorks }) {
+const PROOF_POINTS = [
+  "Works on slow connections",
+  "Every answer shows its source",
+  "~35% lower latency with context pruning",
+];
+
+export default function HeroSection({ onSuccess }) {
   return (
-    <section className="relative px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+    <section className="px-4 py-12 sm:px-6 sm:py-16 lg:py-24" aria-labelledby="hero-heading">
+      <div className="mx-auto max-w-[1120px]">
+        {/* Spans both columns on desktop so each sentence fits on one line;
+            on smaller screens it wraps naturally. */}
+        <h1
+          id="hero-heading"
+          className="font-display text-[length:clamp(2.25rem,5vw,3.5rem)] font-bold leading-[1.1] text-text"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-light">
-            <Sparkles className="h-3.5 w-3.5" />
-            AI-Powered Education
+          <span className="lg:block">Ask your textbook anything.</span>{" "}
+          <span className="lg:block">Get answers, not buffering.</span>
+        </h1>
+
+        <div className="mt-5 grid items-start gap-12 lg:mt-8 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+          <div>
+            <p className="max-w-xl text-lg text-muted">
+              Upload a PDF, ask in plain language, and get answers taken straight
+              from your book, even on a slow connection. Made for Class 6–12.
+            </p>
+  
+            <UploadPanel onSuccess={onSuccess} className="mt-8">
+              <a
+                href="#how-it-works"
+                className="rounded-sm font-medium text-primary underline-offset-4 transition-colors duration-150 hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                See how it works
+              </a>
+            </UploadPanel>
+  
+            {/* Each point stays on one line; a wrap can only happen after a "·". */}
+            <p className="mt-8 text-sm text-muted">
+              {PROOF_POINTS.map((point, i) => (
+                <span key={point}>
+                  {i > 0 && " · "}
+                  <span className="whitespace-nowrap">{point}</span>
+                </span>
+              ))}
+            </p>
           </div>
-
-          <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-text sm:text-5xl lg:text-[3.25rem]">
-            Transform Any Textbook Into{" "}
-            <span className="gradient-text">Your Personal AI Tutor</span>
-          </h1>
-
-          <p className="mt-6 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
-            Upload your PDF, ask questions in plain language, and get precise
-            answers grounded in your textbook. Semantic search, context pruning,
-            and fast AI responses — built for students everywhere.
-          </p>
-
-          <ul className="mt-8 flex flex-wrap gap-3">
-            {["Upload PDF", "Ask Questions", "Grounded Answers", "Generate Quizzes"].map(
-              (item, i) => (
-                <motion.li
-                  key={item}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08 }}
-                  className="flex items-center gap-2 rounded-lg glass-subtle px-3 py-2 text-sm text-muted"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                  {item}
-                </motion.li>
-              )
-            )}
-          </ul>
-
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              onClick={() =>
-                document.getElementById("upload-zone")?.scrollIntoView({
-                  behavior: "smooth",
-                })
-              }
-            >
-              Upload PDF
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button variant="secondary" size="lg" onClick={onSeeHowItWorks}>
-              See How It Works
-            </Button>
-          </div>
-        </motion.div>
-
-        <motion.div
-          id="upload-zone"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        >
-          <UploadPanel onSuccess={onSuccess} />
-        </motion.div>
+  
+          <DemoCard />
+        </div>
       </div>
     </section>
+  );
+}
+
+// DEMO CONTENT: a static, hardcoded example of an answer. It does not call the
+// API; it only shows what a real answer, its source and its stats look like.
+function DemoCard() {
+  return (
+    <figure
+      aria-label="Example answer from VidyaAI"
+      className="rounded-[10px] border border-border bg-surface p-5 shadow-card sm:p-6"
+    >
+      {/* Same bubble as the student's messages in the real chat. */}
+      <p className={USER_BUBBLE}>
+        Why do leaves look green?
+      </p>
+
+      <p className="mt-4 text-text">
+        Leaves look green because they contain a pigment called chlorophyll.
+        Chlorophyll absorbs red and blue light from sunlight and reflects green
+        light, so green is the colour our eyes see.
+      </p>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <p className="text-sm font-medium text-accent">Science textbook · p. 98</p>
+        <blockquote className="mt-2 text-sm text-muted">
+          Leaves contain a green pigment called chlorophyll, which helps plants
+          capture the energy of sunlight.{" "}
+          <mark className="rounded-sm bg-highlight px-0.5 text-text">
+            Chlorophyll absorbs red and blue light but reflects green light,
+            which is why leaves appear green.
+          </mark>{" "}
+          Plants use this energy to make food by photosynthesis.
+        </blockquote>
+      </div>
+
+      <figcaption className="mt-5 border-t border-border pt-3 font-mono text-[13px] text-text">
+        20 passages checked · 5 used · 1.8s
+      </figcaption>
+    </figure>
   );
 }

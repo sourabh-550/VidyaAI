@@ -3,11 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="VidyaAI — Transform any textbook into your personal AI tutor. Upload PDFs, ask questions, get grounded answers." />
-    <title>VidyaAI — AI Tutor for Every Student</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <meta name="description" content="Upload a textbook PDF, ask in plain language, and get answers taken straight from your book, even on a slow connection. Made for Class 6–12." />
+    <title>VidyaAI — Ask your textbook anything</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Apply a saved theme choice before first paint to avoid a flash.
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
