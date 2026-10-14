@@ -18,6 +18,20 @@ const SUGGESTIONS = [
 ];
 
 const MAX_INPUT_LINES = 5;
+const HISTORY_PAIRS = 3;
+
+// The last few question/answer pairs, oldest first, for follow-up questions.
+// Only real answers count: error messages are skipped, and sources and stats
+// are never sent.
+function buildHistory(messages) {
+  return messages
+    .filter((m) => m.role === "ai" && !m.error)
+    .slice(-HISTORY_PAIRS)
+    .flatMap((m) => [
+      { role: "user", content: m.question },
+      { role: "assistant", content: m.text },
+    ]);
+}
 
 const prefersReducedMotion = () =>
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -56,6 +70,8 @@ export default function ChatPanel({ filename }) {
   const ask = async (qOverride) => {
     const q = (qOverride ?? question).trim();
     if (!q || loading) return;
+    // Built before the new question is added, so it holds only earlier answers
+    const history = buildHistory(messages);
     setMessages((p) => [...p, { role: "user", text: q }]);
     setQuestion("");
     setLoading(true);
@@ -66,6 +82,7 @@ export default function ChatPanel({ filename }) {
         question: q,
         top_k: 5,
         similarity_threshold: 0.25,
+        history,
       });
       const seconds = (performance.now() - startedAt) / 1000;
       setMessages((p) => [
@@ -74,6 +91,9 @@ export default function ChatPanel({ filename }) {
           role: "ai",
           text: res.data.answer,
           question: q,
+          // The standalone question the backend searched with ("its focal
+          // length" → "the focal length of a convex lens"), used for highlights
+          searchQuery: res.data.search_query,
           sources: res.data.sources,
           meta: {
             total: res.data.total_candidates,
@@ -120,7 +140,9 @@ export default function ChatPanel({ filename }) {
             ) : (
               <div key={i} className="text-text">
                 <Markdown text={m.text} />
-                {m.sources?.length > 0 && <SourceChunks sources={m.sources} question={m.question} />}
+                {m.sources?.length > 0 && (
+                  <SourceChunks sources={m.sources} question={m.searchQuery || m.question} />
+                )}
                 {m.meta && (
                   <p className="mt-3 font-mono text-xs text-muted">
                     {m.meta.total} checked · {m.meta.pruned} used
