@@ -37,3 +37,9 @@ desktop.ini
 *.log
 npm-debug.log*
 EXPLANATION.md
+
+# Eval results contain text from the test documents
+evals/results/
+
+# Local backups of the git-ignored docs
+*.backup.md
