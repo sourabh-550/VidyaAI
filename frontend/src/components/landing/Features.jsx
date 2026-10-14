@@ -10,8 +10,8 @@ const FEATURES = [
     text: "Each answer lists the passages it used, with a relevance score for each.",
   },
   {
-    title: "Practice with quizzes",
-    text: "Make MCQ and True/False quizzes from any chapter, with every answer explained.",
+    title: "Ask follow-up questions",
+    text: "Say \"explain that more simply\" and it knows what you were just talking about.",
   },
   {
     title: "Built for slow connections",

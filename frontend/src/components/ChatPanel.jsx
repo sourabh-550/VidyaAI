@@ -120,7 +120,7 @@ export default function ChatPanel({ filename }) {
   return (
     // A single notebook-style column. The page scrolls; the question box
     // sticks to the bottom of the screen.
-    <div className="flex min-h-[calc(100dvh-7.75rem)] max-w-[720px] flex-col">
+    <div className="flex min-h-[calc(100dvh-4.75rem)] max-w-[720px] flex-col">
       <div className="flex-1 py-8">
         {messages.length === 0 && !loading && (
           <EmptyState filename={filename} onPick={(s) => ask(s)} />
