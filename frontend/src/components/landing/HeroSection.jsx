@@ -2,8 +2,8 @@ import UploadPanel from "../UploadPanel";
 import { USER_BUBBLE } from "../../lib/styles";
 
 const PROOF_POINTS = [
-  "Works on slow connections",
-  "Every answer shows its source",
+  "Shows the passages behind every answer",
+  "Understands follow-up questions",
   "~35% lower latency with context pruning",
 ];
 
@@ -17,15 +17,16 @@ export default function HeroSection({ onSuccess }) {
           id="hero-heading"
           className="font-display text-[length:clamp(2.25rem,5vw,3.5rem)] font-bold leading-[1.1] text-text"
         >
-          <span className="lg:block">Ask your textbook anything.</span>{" "}
+          <span className="lg:block">Ask your PDF anything.</span>{" "}
           <span className="lg:block">Get answers, not buffering.</span>
         </h1>
 
         <div className="mt-5 grid items-start gap-12 lg:mt-8 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
           <div>
             <p className="max-w-xl text-lg text-muted">
-              Upload a PDF, ask in plain language, and get answers taken straight
-              from your book, even on a slow connection. Made for Class 6–12.
+              Upload a PDF, ask in plain language, and get answers built from your
+              document. Only the passages your question needs are sent to the model,
+              so answers come back fast.
             </p>
   
             <UploadPanel onSuccess={onSuccess} className="mt-8">
@@ -60,10 +61,10 @@ export default function HeroSection({ onSuccess }) {
 function DemoCard() {
   return (
     <figure
-      aria-label="Example answer from VidyaAI"
+      aria-label="Example answer from DocsMind"
       className="rounded-[10px] border border-border bg-surface p-5 shadow-card sm:p-6"
     >
-      {/* Same bubble as the student's messages in the real chat. */}
+      {/* Same bubble as the user's messages in the real chat. */}
       <p className={USER_BUBBLE}>
         Why do leaves look green?
       </p>
@@ -75,7 +76,7 @@ function DemoCard() {
       </p>
 
       <div className="mt-5 border-t border-border pt-4">
-        <p className="text-sm font-medium text-accent">Science textbook · p. 98</p>
+        <p className="text-sm font-medium text-accent">Passage 1 · relevance 0.42</p>
         <blockquote className="mt-2 text-sm text-muted">
           Leaves contain a green pigment called chlorophyll, which helps plants
           capture the energy of sunlight.{" "}

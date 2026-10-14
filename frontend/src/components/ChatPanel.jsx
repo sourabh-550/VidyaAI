@@ -13,8 +13,8 @@ import apiErrorMessage from "../lib/apiError";
 const SUGGESTIONS = [
   "Summarize the key topics in this document",
   "What are the main concepts covered?",
-  "Explain the first chapter in simple words",
-  "What is the most important idea in this book?",
+  "Explain the first section in simple words",
+  "What is the most important idea in this document?",
 ];
 
 const MAX_INPUT_LINES = 5;
@@ -180,7 +180,7 @@ export default function ChatPanel({ filename }) {
                 ask();
               }
             }}
-            placeholder="Ask a doubt from your book…"
+            placeholder="Ask a question about your document…"
             disabled={loading}
             rows={1}
             className="min-h-12 flex-1 resize-none overflow-y-hidden rounded-lg border border-input-border bg-surface px-3 py-3 text-base leading-normal text-text transition-colors duration-150 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
@@ -211,7 +211,7 @@ function EmptyState({ filename, onPick }) {
       </h2>
       <p className="mt-2 text-muted">
         Answers come only from{" "}
-        {filename ? <span className="font-medium text-text">{filename}</span> : "your textbook"}.
+        {filename ? <span className="font-medium text-text">{filename}</span> : "your document"}.
         Try one of these:
       </p>
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -235,7 +235,7 @@ function EmptyState({ filename, onPick }) {
 function AnswerSkeleton({ slow }) {
   return (
     <div aria-live="polite">
-      <p className="text-sm text-muted">Looking through your textbook…</p>
+      <p className="text-sm text-muted">Looking through your document…</p>
       <div className="mt-3 space-y-2.5" aria-hidden="true">
         <div className="h-3 w-11/12 rounded-sm bg-border" />
         <div className="h-3 w-full rounded-sm bg-border" />

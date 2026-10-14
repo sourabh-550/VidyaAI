@@ -1,5 +1,5 @@
 /*
- * VidyaAI design tokens. This is the ONLY place colors are defined.
+ * DocsMind design tokens. This is the ONLY place colors are defined.
  * Components use the Tailwind utilities mapped below (bg-bg, text-muted,
  * bg-primary, ...) — never raw hex values or Tailwind's default palette.
  *

@@ -9,10 +9,9 @@ export default function Footer() {
     <footer className="border-t border-border px-4 py-10 sm:px-6">
       <div className="mx-auto flex max-w-[1120px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <span className="font-display text-lg font-bold text-text">VidyaAI</span>
+          <span className="font-display text-lg font-bold text-text">DocsMind</span>
           <p className="mt-1 text-sm text-muted">
-            A study tool that answers questions from your own textbook, made for
-            Class 6–12.
+            Answers questions from your own PDFs and shows the passages it used.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2">

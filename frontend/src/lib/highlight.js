@@ -1,5 +1,5 @@
 // Finds the sentences in a source passage that share meaningful words with
-// the student's question, so the Sources list can highlight them.
+// the user's question, so the Sources list can highlight them.
 
 // Common words that say nothing about the topic. Tokens shorter than 3
 // letters (like "np", "is") are dropped separately.

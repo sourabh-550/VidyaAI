@@ -21,7 +21,7 @@ export default function Header({ pdfReady, filename }) {
     <header className="sticky top-0 z-50 border-b border-border bg-bg px-4 sm:px-6">
       {/* Same max-width and side padding as the page sections, so the edges line up. */}
       <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-4">
-        <span className="font-display text-xl font-bold text-text">VidyaAI</span>
+        <span className="font-display text-xl font-bold text-text">DocsMind</span>
 
         {!pdfReady && (
           <>
@@ -41,7 +41,7 @@ export default function Header({ pdfReady, filename }) {
               onClick={openUpload}
               className="ml-auto md:ml-2"
             >
-              Upload a textbook
+              Upload a PDF
             </Button>
           </>
         )}

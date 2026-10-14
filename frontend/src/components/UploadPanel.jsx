@@ -75,7 +75,7 @@ export default function UploadPanel({ onSuccess, className = "", children }) {
           }}
           className={drag ? "ring-2 ring-primary ring-offset-2 ring-offset-bg" : ""}
         >
-          {loading ? "Uploading…" : "Upload a textbook"}
+          {loading ? "Uploading…" : "Upload a PDF"}
         </Button>
         {children}
       </div>
@@ -101,7 +101,7 @@ export default function UploadPanel({ onSuccess, className = "", children }) {
         {type === "loading" && (
           <div className="mt-4 max-w-sm">
             <p className="text-sm text-muted">
-              Reading your textbook. Large PDFs can take a minute.
+              Reading your PDF. Large files can take a minute.
             </p>
             <div className="mt-2 flex items-center gap-3">
               <div

@@ -47,6 +47,7 @@ For the example test, also record where each example came from: **from the passa
     - Before: "objects that are far away can appear larger or closer". The passages say the image of a very distant object is "highly diminished".
     - After: "help you see things that are far away". On its own, a convex lens makes distant things blurry for a normal eye. This is only true inside a telescope, which the answer did not mention.
   - One more answer after the change added a claim that is **true but extra**: "like a magnifying glass or a camera lens".
+- **After the DocsMind rename** (new prompts, same test, 5 runs, `simpler_docsmind.json`): 1 of 5 answers had a **wrong** claim ("objects that are far away can appear larger and closer"), 1 of 5 added a **true but extra** one ("magnifying glasses and cameras"), and 3 of 5 said a lens is made of "glass". That is no worse than before the rename.
 - **"give me an example of that"**, 5 times with the new rules.
   - 4 of 5 used the document's own example: an exercise question about reading small letters in a dictionary with a convex lens of focal length 5 cm. The passages only ask the question, so the model also worked out the answer. It picked the right one.
   - 1 of 5 made up its own example: a magnifying glass held over a book "or a seed".

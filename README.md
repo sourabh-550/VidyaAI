@@ -1,38 +1,41 @@
-# VidyaAI
+# DocsMind
 
-**Ask your textbook anything. Get answers, not buffering.**
+**Ask your PDF anything. Get answers, not buffering.**
 
-VidyaAI is a study tool for school students. A student uploads a textbook PDF, asks questions about it, and gets answers drawn only from that book, along with the passages each answer came from. It can also turn the same book into practice quizzes.
+DocsMind is a question-and-answer assistant for PDFs. Upload a document, ask questions about it in plain language, and get answers built from that document, with the passages each answer came from shown next to it. Follow-up questions like "explain that more simply" work too.
 
 Live demo: https://vidyaai-nine.vercel.app
 
-![VidyaAI home page](docs/screenshots/hero.png)
+<!-- Screenshot: home page (docs/screenshots/hero.png) -->
 
 ## The problem
 
-Students in Classes 6 to 12 in India often study from a single textbook, on slow internet and inexpensive phones, with little help available when they get stuck. General-purpose chatbots answer from general knowledge rather than from the book the student is actually studying. VidyaAI keeps every answer tied to the student's own textbook and keeps each request small.
+People often need answers from one specific document: a textbook chapter, a manual, a policy or a report. General-purpose chatbots answer from general knowledge rather than from that document, and there is no easy way to check where an answer came from. DocsMind builds every answer from the uploaded PDF and shows the passages it used, so the answer can be checked against the document.
+
+DocsMind started as VidyaAI, a study tool for school students. The project was renamed and opened up to any PDF in October 2026.
 
 ## What it does
 
-- **Answers from the uploaded book.** Each answer is generated only from passages retrieved from the uploaded PDF. The passages used are shown next to the answer, and sentences that share key words with the question are highlighted so the student can check the answer against the book.
-- **Practice quizzes.** Generates multiple-choice and True/False questions from the book, 5 or 10 at a time, with an optional topic to focus on. Each question comes with a short explanation of the correct answer.
-- **Built for slow connections.** Only a few relevant passages are sent to the language model for each question, the frontend bundle is small, fonts are self-hosted, and the app tells the student when the server is waking up instead of leaving them waiting silently.
+- **Answers from the uploaded document.** Each answer is generated from passages retrieved from the uploaded PDF. The passages used are shown next to the answer, and sentences that share key words with the question are highlighted so the answer can be checked against the document.
+- **Follow-up questions.** The chat remembers the last three questions and answers, so "explain that more simply" or "what is its focal length?" know what was asked before.
+- **Fast and cheap answers.** Only the few passages a question needs are sent to the language model, the frontend bundle is small, fonts are self-hosted, and the app says when the server is waking up instead of leaving the user waiting silently.
 
-![Chat with source passages](docs/screenshots/chat.png)
+<!-- Screenshot: chat with an answer and its source passages (docs/screenshots/chat.png) -->
 
 ## How it works
 
 ```mermaid
 flowchart TD
     subgraph Upload["POST /upload"]
-        A["Textbook PDF"] --> B["PyMuPDF text extraction"]
+        A["PDF"] --> B["PyMuPDF text extraction"]
         B --> C["300-word chunks, 20-word overlap"]
         C --> D["Cohere embed-english-light-v3.0"]
         D --> E["L2-normalized vectors in FAISS IndexFlatIP (cosine similarity), saved to disk"]
     end
 
     subgraph Ask["POST /ask"]
-        Q["Student question"] --> F["Cohere embed-english-light-v3.0"]
+        Q["User question + recent chat history"] --> R["Follow-up? Groq rewrites it into a standalone question"]
+        R --> F["Cohere embed-english-light-v3.0"]
         F --> G["FAISS search: top 20 passages"]
         E -.-> G
         G --> H["Context pruning: similarity >= 0.25, keep at most 5, fall back to best 3"]
@@ -42,7 +45,7 @@ flowchart TD
 ```
 
 1. **Upload.** The PDF's text is extracted with PyMuPDF, flattened into one stream of words, and split into 300-word passages with a 20-word overlap. Each passage is embedded with Cohere's `embed-english-light-v3.0` model. The vectors are L2-normalized and stored in a FAISS `IndexFlatIP` index, so inner product equals cosine similarity. The index and passages are written to `backend/faiss_store/`.
-2. **Ask.** The question is embedded with the same Cohere model, and FAISS returns the 20 most similar passages. These are pruned (see below) and the remaining passages are sent to Groq along with a system prompt that tells the model to use only the given context, to say so when the answer is not there, and to write formulas as plain text. The model defaults to `openai/gpt-oss-20b` and can be changed with the `GROQ_MODEL` environment variable. The response contains the answer, the passages used with their similarity scores, and how many passages were checked and kept.
+2. **Ask.** If the question is a follow-up, a small Groq call first rewrites it into a question that makes sense on its own (see below). The question is embedded with the same Cohere model, and FAISS returns the 20 most similar passages. These are pruned (see below), and the remaining passages are sent to Groq along with a system prompt that tells the model to use only the given context, to say so when the answer is not there, and to write formulas as plain text. The model defaults to `openai/gpt-oss-20b` and can be changed with the `GROQ_MODEL` environment variable. The response contains the answer, the passages used with their similarity scores, how many passages were checked and kept, and the question that was searched for.
 
 ### Context pruning
 
@@ -54,15 +57,16 @@ flowchart TD
 
 Passages are ranked by similarity score only. A reranking model would likely pick better passages, but it was left out to keep the project within free-tier API limits.
 
-### Quiz generation
+### Conversation memory
 
-`POST /quiz` builds a quiz in these steps:
+The history lives in the browser. With each question, the frontend sends the last three question-and-answer pairs (answers only, no error messages or sources). The backend stays stateless and caps the history itself: at most 6 messages, each cut to 1,500 characters.
 
-1. **Pick passages.** If the student gives a topic, the topic is embedded and the 8 most similar passages are used. With no topic, 8 passages are picked at random from the whole book.
-2. **Generate.** The passages go to Groq with a prompt asking for the requested number of questions, mixing MCQ and True/False, using only facts from the passages, and never giving the answer away in the question. The request uses Groq's JSON mode (`response_format={"type": "json_object"}`), so the reply is a JSON object. Any markdown code fences are stripped as a fallback.
-3. **Validate.** Each question is checked against a Pydantic model (`type`, `question`, `options`, `correct`, `explanation`). Malformed questions are skipped, and any question whose `correct` value is not exactly one of its `options` is discarded. If no valid questions remain, the API returns an error asking the student to try again.
+- **Query rewriting.** A follow-up such as "what is its focal length?" makes a poor search, because "its" means nothing on its own. When there is history, one small Groq call rewrites the question into a standalone one, such as "What is the focal length of a convex lens?", and that is what FAISS searches for. If the rewrite fails or times out (no retries, 5-second limit), the original question is used. A follow-up costs about 0.4 seconds and about 50 output tokens for the rewrite.
+- **Answering.** The answer call sees only the last question and answer, as real chat messages, plus the passages and the user's own question.
 
-The backend accepts 1 to 10 questions per quiz. The interface offers 5 or 10.
+## Evaluation
+
+`evals/followup_facts.py` checks whether follow-up answers add facts that are not in their passages. In October 2026, 4 of 15 follow-up answers stated a wrong fact (one chapter, a small sample). See [evals/README.md](evals/README.md) for how to run it, the labelling rules and the detailed results.
 
 ## Results
 
@@ -72,11 +76,10 @@ The backend accepts 1 to 10 questions per quiz. The interface offers 5 or 10.
 | Text sent to the model per question | About 1,500 words instead of about 6,000 (about 75% less) |
 | Typical answer time | About 1.4 s once the server is awake |
 | Example: NCERT Class 10, "Light – Reflection and Refraction", question "What is 1 dioptre?" | 20 passages checked, 1 sent to the model |
+| Extra cost of a follow-up question | About 0.4 s and about 50 output tokens for the rewrite |
+| Follow-up answers with a wrong fact | 4 of 15 (one chapter, small sample) |
 | Frontend JavaScript bundle after the redesign | 370 KB to 221 KB (about 40% smaller), 73 KB compressed |
 | Accessibility | All text meets WCAG AA contrast in light and dark themes, with visible keyboard focus |
-
-![Practice quiz](docs/screenshots/quiz1.png)
-![Quiz results](docs/screenshots/quiz2.png)
 
 ## Tech stack
 
@@ -162,16 +165,15 @@ export const API_BASE = "http://127.0.0.1:8000";
 
 ## Limitations and next steps
 
-- **One shared index.** There is a single FAISS index for all users, so each new upload replaces the previous book for everyone. Per-user or per-document indexes are the next step.
-- **Uploads do not survive restarts.** The index is stored on Render's temporary disk and is lost when the server restarts or redeploys; the student then has to upload the book again. After a restart, the first request can take up to a minute.
+- **One shared index.** There is a single FAISS index for all users, so each new upload replaces the previous document for everyone. Per-user or per-document indexes are the next step.
+- **Uploads do not survive restarts.** The index is stored on Render's temporary disk and is lost when the server restarts or redeploys; the user then has to upload the document again. After a restart, the first request can take up to a minute.
 - **PDF extraction is imperfect.** Formulas, tables and page headers often come out garbled. Page numbers are not kept, so sources cannot point to a page. Scanned PDFs without a text layer are rejected, since there is no OCR.
 - **Broad questions are weak.** Questions like "summarize this chapter" do not match any single passage well, so the model often sees only the 3 best passages and gives a partial answer.
 - **Pruning uses only the similarity score.** A hosted reranker would help choose better passages.
-- **The model does not always follow the prompt.** It can occasionally add outside knowledge or write formulas in LaTeX despite being told not to.
+- **The model does not always follow the prompt.** It can add facts that are not in the passages, mix up two parts of the passages, or write formulas in LaTeX despite being told not to. See [Evaluation](#evaluation).
+- **Short memory.** The chat remembers only the last three questions and answers, and reloading the page forgets them. If a follow-up is rewritten wrongly, the search uses the wrong question.
 - **No streaming.** The answer appears only once it is complete.
-- **English-only embeddings.** `embed-english-light-v3.0` is an English model, so retrieval from Hindi or other regional-language textbooks is likely to be poor.
-- **No conversation memory.** Each question is sent on its own, so follow-ups like "explain that more simply" do not know what was asked before.
-- **Quizzes can come back short.** Questions that fail validation are dropped rather than regenerated, so a quiz may have fewer questions than requested.
+- **English-only embeddings.** `embed-english-light-v3.0` is an English model, so retrieval from documents in Hindi or other languages is likely to be poor.
 - **Keep-alive URL is hardcoded.** The server pings the deployed Render URL every 10 minutes to stay awake, including when run locally.
 - **No authentication or upload size limit**, CORS accepts any origin, and there is no automated test suite.
 

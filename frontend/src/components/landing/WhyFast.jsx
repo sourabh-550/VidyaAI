@@ -21,7 +21,7 @@ export default function WhyFast() {
     <Section
       id="why-fast"
       title="Why it's fast and cheap"
-      intro="VidyaAI is built for students in low-connectivity areas and runs on free-tier APIs."
+      intro="DocsMind sends the model only the passages a question needs, so answers are fast and cheap, and it all runs on free-tier APIs."
       layout="split"
     >
       <figure>

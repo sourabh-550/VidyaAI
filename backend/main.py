@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Tutor - RAG API")
+app = FastAPI(title="DocsMind - RAG API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +56,7 @@ class QuestionRequest(BaseModel):
         # Empty messages carry nothing useful (content is already stripped)
         history = [m for m in history if m.content]
         history = history[-MAX_HISTORY_MESSAGES:]
-        # Cutting can leave an answer without its question; start with the student
+        # Cutting can leave an answer without its question; start with the user
         while history and history[0].role == "assistant":
             history = history[1:]
         return history
@@ -70,11 +70,11 @@ class QuestionResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup():
-    print("VidyaAI backend ready")
+    print("DocsMind backend ready")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "message": "AI Tutor API running"}
+    return {"status": "ok", "message": "DocsMind API running"}
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -116,7 +116,7 @@ def ask_question(body: QuestionRequest):
         # The index is missing: nothing was uploaded, or the server restarted and lost it
         raise HTTPException(
             status_code=404,
-            detail="Your textbook isn't loaded on the server anymore. Please upload it again.",
+            detail="Your document isn't loaded on the server anymore. Please upload it again.",
         )
 
     total_candidates = len(candidates)

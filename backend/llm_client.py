@@ -16,23 +16,25 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 # a model, you only change GROQ_MODEL on Render. No code change needed.
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 
-SYSTEM_PROMPT = """You are an AI tutor for students in rural India.
+SYSTEM_PROMPT = """You are a document assistant. You answer questions about a PDF the user has uploaded.
 Explain concepts clearly and simply. Use the provided context only.
 If the answer is not in the context, say "I don't have enough information to answer this."
 Base every fact and reason on the context. Don't add facts or reasons that aren't in it.
-Use the earlier chat only to understand what the student is referring to. Every fact must still come from the context.
-If the user asks to explain something again in a different way (simpler, shorter, or with an example), don't repeat your earlier answer. Rewrite it the way they asked. For 'simpler', use shorter sentences and everyday words. For 'with an example', use only an example from the context; if the context has none, say so instead of making one up. Simpler words are fine; new facts are not. Leave out anything you can't point to in the context, even if it would make the explanation easier.
-When you mention where information comes from, call it "your textbook". Never say "the context" or "the passages" to the student.
+Use the earlier chat only to understand what the user is referring to. Every fact must still come from the context.
+If the user asks to explain something again (simpler, shorter, or with an example), rewrite your earlier answer the way they asked. Don't repeat it.
+For 'simpler', use shorter sentences and everyday words. Simpler words are fine; new facts are not: leave out anything you can't point to in the context, even if it would make the explanation easier.
+For 'with an example', use only an example from the context. If the context has none, say so instead of making one up.
+When you mention where information comes from, call it "your document". Never say "the context" or "the passages" to the user.
 Keep answers concise, helpful, and easy to understand.
 Use short paragraphs. You may use **bold** and simple bullet lists when they help. Do not use tables or headings.
 Never use LaTeX. Write formulas in plain text, for example: 1/v + 1/u = 1/f or P = 1/f."""
 
 FALLBACK_ANSWER = "Sorry, I couldn't put together an answer this time. Please try asking again."
 
-REWRITE_PROMPT = """You turn a student's latest question into a standalone question for searching their textbook.
+REWRITE_PROMPT = """You turn a user's latest question into a standalone question for searching their document.
 If the latest question already makes sense on its own, return it exactly as it is.
 If it refers to the earlier chat (for example "that", "it", "explain more simply"), replace those words with the topic they refer to.
-If the student moves to a new topic, rewrite only the new question. Do not mix in the earlier topic.
+If the user moves to a new topic, rewrite only the new question. Do not mix in the earlier topic.
 Never answer the question. Never add facts, explanations or extra details.
 Reply with only the rewritten question on a single line, with no quotes or labels."""
 
@@ -44,7 +46,7 @@ REWRITE_MAX_CHARS = 500
 
 def rewrite_query(question: str, history: list[dict]) -> str:
     """Turn a follow-up like "explain that more simply" into a question that
-    makes sense on its own, so the textbook search finds the right passages.
+    makes sense on its own, so the document search finds the right passages.
     Any problem falls back to the original question."""
     if not history:
         return question
@@ -52,9 +54,9 @@ def rewrite_query(question: str, history: list[dict]) -> str:
     lines = []
     for message in history:
         if message["role"] == "user":
-            lines.append(f"Student: {message['content']}")
+            lines.append(f"User: {message['content']}")
         else:
-            lines.append(f"Tutor: {message['content'][:REWRITE_ANSWER_CHARS]}")
+            lines.append(f"Assistant: {message['content'][:REWRITE_ANSWER_CHARS]}")
     chat_text = "\n".join(lines)
 
     user_message = f"""Earlier chat:
@@ -116,7 +118,7 @@ def ask_llm(
     user_message = f"""Context from the document:
 {context_text}
 
-Student's question: {query}{full_question}
+User's question: {query}{full_question}
 
 Answer clearly and simply:"""
 

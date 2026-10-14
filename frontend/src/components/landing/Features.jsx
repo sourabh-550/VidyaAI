@@ -2,8 +2,8 @@ import Section from "./Section";
 
 const FEATURES = [
   {
-    title: "Ask anything from your book",
-    text: "Doubts, definitions or summaries, answered only from the PDF you uploaded.",
+    title: "Ask anything from your document",
+    text: "Questions, definitions or short summaries of a topic, answered from the PDF you uploaded.",
   },
   {
     title: "See the source for every answer",
@@ -14,8 +14,8 @@ const FEATURES = [
     text: "Say \"explain that more simply\" and it knows what you were just talking about.",
   },
   {
-    title: "Built for slow connections",
-    text: "No videos or heavy images, so pages stay light on mobile data.",
+    title: "Fast and cheap answers",
+    text: "Only the passages a question needs go to the model: at most 5 of the 20 it finds.",
   },
 ];
 

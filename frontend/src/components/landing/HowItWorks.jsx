@@ -2,16 +2,16 @@ import Section from "./Section";
 
 const STEPS = [
   {
-    title: "Upload your textbook",
-    text: "Pick the PDF of one chapter or the whole book.",
+    title: "Upload your PDF",
+    text: "Pick any PDF with text: notes, a report, a manual or a whole book.",
   },
   {
-    title: "Ask a doubt in your own words",
-    text: "Type it the way you would ask your teacher.",
+    title: "Ask in your own words",
+    text: "Type it the way you would ask a person.",
   },
   {
     title: "Get an answer with the exact lines it came from",
-    text: "Every answer shows the passages from your book it was built on, so you can check it.",
+    text: "Every answer shows the passages from your document it was built on, so you can check it.",
   },
 ];
 
