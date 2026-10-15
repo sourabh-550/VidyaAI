@@ -10,12 +10,21 @@ import SlowServerNotice from "./ui/SlowServerNotice";
 import useSlowNotice from "../lib/useSlowNotice";
 import apiErrorMessage from "../lib/apiError";
 
-const SUGGESTIONS = [
-  "Summarize the key topics in this document",
-  "What are the main concepts covered?",
-  "Explain the first section in simple words",
-  "What is the most important idea in this document?",
+// Starters fill the question box instead of sending; the cursor goes where
+// the "…" is. Generic questions match no passage well (see
+// docs/EXPLANATION.md section 5), so these nudge towards naming a topic.
+const STARTERS = [
+  "What is …?",
+  "How does … work?",
+  "What are the steps to …?",
+  "What does it say about …?",
 ];
+
+const squash = (text) => text.replace(/\s+/g, " ").trim();
+const STARTER_FILLS = STARTERS.map((s) => squash(s.replace("…", "")));
+
+// True when the box holds a starter exactly as it was filled in ("What is ?").
+const isUnchangedStarter = (text) => STARTER_FILLS.includes(squash(text));
 
 const MAX_INPUT_LINES = 5;
 const HISTORY_PAIRS = 3;
@@ -69,7 +78,7 @@ export default function ChatPanel({ filename }) {
 
   const ask = async (qOverride) => {
     const q = (qOverride ?? question).trim();
-    if (!q || loading) return;
+    if (!q || isUnchangedStarter(q) || loading) return;
     // Built before the new question is added, so it holds only earlier answers
     const history = buildHistory(messages);
     setMessages((p) => [...p, { role: "user", text: q }]);
@@ -117,13 +126,32 @@ export default function ChatPanel({ filename }) {
     }
   };
 
+  const startQuestion = (starter) => {
+    // Never overwrite a question the user has started typing
+    if (question.trim() && !isUnchangedStarter(question)) {
+      const el = inputRef.current;
+      el?.focus();
+      el?.setSelectionRange(question.length, question.length);
+      return;
+    }
+    const [before, after] = starter.split("…");
+    setQuestion(before + after);
+    // After React has put the new text in the box
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(before.length, before.length);
+    });
+  };
+
   return (
     // A single notebook-style column. The page scrolls; the question box
     // sticks to the bottom of the screen.
     <div className="flex min-h-[calc(100dvh-4.75rem)] max-w-[720px] flex-col">
       <div className="flex-1 py-8">
         {messages.length === 0 && !loading && (
-          <EmptyState filename={filename} onPick={(s) => ask(s)} />
+          <EmptyState filename={filename} onPick={startQuestion} />
         )}
 
         <div className="space-y-8">
@@ -188,7 +216,7 @@ export default function ChatPanel({ filename }) {
           <Button
             type="submit"
             size="lg"
-            disabled={loading || !question.trim()}
+            disabled={loading || !question.trim() || isUnchangedStarter(question)}
             aria-label="Send question"
             className="w-12 shrink-0 px-0"
           >
@@ -212,10 +240,10 @@ function EmptyState({ filename, onPick }) {
       <p className="mt-2 text-muted">
         Answers come only from{" "}
         {filename ? <span className="font-medium text-text">{filename}</span> : "your document"}.
-        Try one of these:
+        Start with one of these:
       </p>
       <ul className="mt-6 grid gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((s) => (
+        {STARTERS.map((s) => (
           <li key={s}>
             <button
               type="button"
@@ -227,6 +255,10 @@ function EmptyState({ filename, onPick }) {
           </li>
         ))}
       </ul>
+      <p className="mt-4 text-sm text-muted">
+        Ask about a specific term, topic or step. Questions that name what
+        you're looking for get the best answers.
+      </p>
     </div>
   );
 }
