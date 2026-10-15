@@ -61,3 +61,50 @@ For the example test, also record where each example came from: **from the passa
 **Citations**, where the model names the passage behind each fact, would make the first kind visible: a fact with no passage to point to would stand out. They would not catch the second kind, because each piece really does come from a passage.
 
 **What this shows:** the prompt wording did not reduce the added facts. The model still reaches for facts and examples it knows from training. Most are true but extra. A few are wrong, and a wrong fact is worse than a missing one, because the user cannot tell that it did not come from the document. Five runs per test is a small sample, so these counts show that the problem exists, not exactly how often it happens.
+
+## Re-explanation rule, October 2026
+
+In the app, "explain it in easy language" gave almost the same answer as before, because the old rule only named "simpler". The new rule in `SYSTEM_PROMPT` treats any request for an easier explanation as asking for a simpler one, whatever the wording. It says to keep only the key terms the user needs and explain each one in everyday words, and not to add terms or details. It also says the answer must be shorter.
+
+Test: "What is a convex lens?", then a follow-up, 3 runs per phrasing (`phr_*.json` = old rule, `phr_*_after.json` = new rule). The first three phrasings are examples written into the new rule. The last two are not, to check that the rule works for other wording.
+
+An answer passes when it meets the length criterion, drops or explains in everyday words both "spherical" and "converges", and has no **wrong** claim. Words are counted in both answers the same way.
+
+| Follow-up | Old rule: shorter | Old rule: ≤ 20% longer | New rule: shorter | New rule: ≤ 20% longer |
+| --- | --- | --- | --- | --- |
+| "explain it in easy language" | 0/3 | 0/3 | 1/3 | 1/3 |
+| "say it in simple words" | 1/3 | 1/3 | 0/3 | 1/3 |
+| "I didn't understand that" | 0/3 | 0/3 | 1/3 | 2/3 |
+| "can you make it easier?" (not in the rule) | not run | not run | 1/3 | 2/3 |
+| "too hard, explain again" (not in the rule) | not run | not run | 2/3 | 2/3 |
+| **Total, same 3 phrasings** | **1/9** | **1/9** | **2/9** | **4/9** |
+| **Total, all 5 phrasings** | not run | not run | **5/15** | **8/15** |
+
+Compare old and new only on the "same 3 phrasings" row, because it is the same test for both rules. The two extra phrasings were run only with the new rule. They show that the rule also works for wording it doesn't list, not that it got better: 5/15 and 8/15 are not comparable with the old 1/9.
+
+**The "≤ 20% longer" criterion was added after seeing these results, not planned before the test.** The usual first answer is already short, about 45 words. Explaining a term in everyday words takes a few more words than the term itself: "converges" becomes "pulls light rays toward a single point". So a good simpler answer can be a little longer than the first one, and "shorter" fails it. 20% of 45 words is about 9 words, enough to explain a term or two. It still catches answers that grow by adding material: the long failures were 28% to 107% longer, usually because of added terms or a "Key points" list. Because this criterion was chosen after seeing the answers, it may fit these runs better than it would fit new ones.
+
+What did not depend on the length criterion:
+
+- With the new rule, all 15 answers drop "spherical" and explain "converges" in everyday words. With the old rule, 6 of 9 kept "spherical" or barely changed the first answer. "I didn't understand that" got back almost the same answer word for word in 2 of 3 runs.
+- All 15 new answers still give the core idea: the lens is thicker in the middle and brings light rays together.
+- 3 of 15 new answers had a **wrong** claim. Two said "objects that are far away can appear closer (or larger)". One said the focal point *is* the focal length.
+
+The default test ("explain that more simply", 5 runs, `simpler_easier_rule.json`) with the new rule: **wrong** 0 of 5, **true but extra** 2 of 5 (both "glass"), **fine** 3 of 5. 1 of 5 answers is shorter than the first answer and 3 of 5 are at most 20% longer. All 5 drop "spherical" and keep the core idea.
+
+## Two wrong facts that keep coming back
+
+Across all result files so far (51 first answers and 51 follow-ups, October 2026), two wrong facts keep showing up:
+
+- **"Objects that are far away appear larger or closer."** It appears in 4 follow-ups ("larger or closer", "closer or larger", "larger and closer", "closer") and never in a first answer. The passages say the image of a very distant object is "highly diminished". This one is outside knowledge.
+- **"A magnifying glass gives a real image."** For example: "used when a sharp, real image is needed, such as in magnifying glasses or cameras". It appears in 3 first answers, which have no history and no follow-up rule, and 2 of those follow-ups repeated it. The passages' table says an object between the focus and the lens gives an enlarged, virtual and erect image. This one is a mix-up of two parts of the passages, like the "real, inverted" reading-lens examples above.
+
+Because the second one already appears in first answers, changing the follow-up rules cannot fix it. Check first answers for it too, not only follow-ups.
+
+## Known limits
+
+The re-explanation rule is staying as it is for now. It fixed what matters most to users: easier words, hard terms explained, and the core idea kept, even for wording the rule doesn't list. These problems remain:
+
+- **New terms despite the rule.** The rule says not to add terms, but 12 of the 20 follow-ups with the new rule bring in "focal point", "focal length" or "principal focus" when the first answer didn't use that term. In one of them, "focal point" just replaces the first answer's "principal focus". The old rule did the same in 4 of 9.
+- **"A piece of glass".** 11 of the 20 follow-ups with the new rule say the lens is made of glass, compared with 1 of 9 under the old rule. Asking for everyday words seems to pull it in. It is **true but extra**: the passages never say what a lens is made of.
+- **The two recurring wrong facts** (above) need a checking step after the answer, or citations, not more prompt rules. Earlier prompt changes did not reduce them, and the magnifying-glass one appears before any follow-up rule applies. Citations would expose the far-away one, which no passage supports. They would not catch the magnifying-glass one, because each of its two parts does come from a passage, so that one needs a check.
