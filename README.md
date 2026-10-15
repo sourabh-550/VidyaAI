@@ -4,7 +4,7 @@
 
 DocsMind is a question-and-answer assistant for PDFs. Upload a document, ask questions about it in plain language, and get answers built from that document, with the passages each answer came from shown next to it. Follow-up questions like "explain that more simply" work too.
 
-Live demo: https://vidyaai-nine.vercel.app
+Live demo: https://docsmind.vercel.app
 
 <!-- Screenshot: home page (docs/screenshots/hero.png) -->
 
