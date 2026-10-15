@@ -16,6 +16,8 @@ backend/faiss_store/
 # Environment variables
 .env
 *.env
+.env.local
+.env.*.local
 
 # Node
 node_modules/

@@ -157,11 +157,13 @@ npm run dev
 
 The app runs at http://localhost:5173.
 
-By default the frontend calls the deployed backend. To use your local backend, change `API_BASE` in `frontend/src/lib/constants.js`:
+By default the frontend calls the deployed backend. To use your local backend, copy `frontend/.env.example` to `frontend/.env.development.local`, which sets:
 
-```js
-export const API_BASE = "http://127.0.0.1:8000";
 ```
+VITE_API_BASE=http://127.0.0.1:8000
+```
+
+Restart `npm run dev` after creating or changing the file. Only the dev server reads it; `npm run build` always uses the deployed backend. The file is git-ignored.
 
 ## Limitations and next steps
 
